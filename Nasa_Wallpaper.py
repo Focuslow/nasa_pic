@@ -233,7 +233,7 @@ class SystemTrayIcon(QtWidgets.QSystemTrayIcon):
 
         menu.addSeparator()
         self.setContextMenu(menu)
-        self.activated.connect(self.onTrayIconActivated)
+        # self.activated.connect(self.onTrayIconActivated)
 
     def onTrayIconActivated(self, reason):
         """
