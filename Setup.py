@@ -30,6 +30,8 @@ def add_to_startup(file_path=""):
     bat_name = 'Nasa Wallpaper.bat'
     start = r'C:\Users\{}\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup'.format(USER_NAME)
     vbs_path = os.path.join(start,vbs_name)
+
+
     with open(bat_name, "w") as f:
         f.write("cd " + file_path + '\n' + 'start \"\" ' "\"Nasa Wallpaper.exe\"")
         f.close()
