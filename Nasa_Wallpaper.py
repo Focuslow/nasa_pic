@@ -123,20 +123,32 @@ def get_date_img_list(path):
 
 
 def picDelete(path):
-    date = datetime.now() - timedelta(days=50)
-    name = date.strftime("%d_%m_%Y")
-    if os.path.exists(path + "\\" + name):
 
-        try:
-            shutil.rmtree(path + "\\" + name)
-        except PermissionError:
-            try:
-                os.remove(path + "\\" + name + "\\" + name + ".jpg")
-            except FileNotFoundError:
-                pass
+    if os.path.isfile(path + '\\' + 'cfg.txt'):
+        with open(path + '\\' + 'cfg.txt', 'r') as file:
+            txt = file.readlines()
+            if len(txt)==3:
+                last_line = txt[2]
+                value = int(last_line[last_line.index(':') + 2:])
+    else:
+        value = 50
+
 
     dirs = get_date_dir_list(path)
     imgs = get_date_img_list(path)
+    i=0
+    while len(dirs)>value:
+        name = dirs[i].strftime("%d_%m_%Y")
+        if os.path.exists(path + "\\" + name):
+
+            try:
+                shutil.rmtree(path + "\\" + name)
+            except PermissionError:
+                try:
+                    os.remove(path + "\\" + name + "\\" + name + ".jpg")
+                except FileNotFoundError:
+                    pass
+        i+=1
 
     for dir in dirs:
         if dir not in imgs:
@@ -278,6 +290,7 @@ class SystemTrayIcon(QtWidgets.QSystemTrayIcon):
         self.setToolTip(f'Nasa wallpaper changer v1.3')
         self.main_path = os.path.dirname(os.path.realpath(__file__))
         self.project_path = path
+        picDelete(project_path)
         self.update()
         self.interval = 300000
         self.titleicon = icon
@@ -568,7 +581,6 @@ class SystemTrayIcon(QtWidgets.QSystemTrayIcon):
         self.slider = Scaler()
         self.slider.setupui(self.slider, self)
         self.slider.show()
-        # self.slider.setWindowFlag(QtCore.Qt.WindowStaysOnTopHint)
 
     def switch_current(self):
         changeToCurrent(project_path)
@@ -581,8 +593,6 @@ class SystemTrayIcon(QtWidgets.QSystemTrayIcon):
             self.switch_next()
             new = getWallpaper()
             if new == file_name:
-                # with open(project_path+"\\date.txt", "w") as file:
-                #     file.write("")
                 self.switch_back()
                 new = getWallpaper()
                 if new == file_name:
@@ -634,7 +644,6 @@ class SystemTrayIcon(QtWidgets.QSystemTrayIcon):
         if internet_on():
             same = sameDate(project_path)
             httpfail = False
-            # print(same)
             if not same:
                 date = datetime.now()
                 name = date.strftime("%d_%m_%Y")
@@ -664,6 +673,7 @@ class SystemTrayIcon(QtWidgets.QSystemTrayIcon):
 
                         if not pic_path:
                             no_internet(self.titleicon)
+                            break
 
                         if pic_path:
                             httpfail = False
@@ -674,13 +684,16 @@ class SystemTrayIcon(QtWidgets.QSystemTrayIcon):
                         if pic_path == getWallpaper():
                             break
                         else:
-                            setWallpaper(pic_path)
-                            break
+                            if not self.timer:
+                                setWallpaper(pic_path)
+                                break
+                            else:
+                                break
 
                 if not httpfail:
                     modifyDate(project_path)
 
-                if pic_path != 0:
+                if pic_path != 0 and not self.timer:
                     setWallpaper(pic_path)
                     picDelete(project_path)
 
@@ -844,6 +857,22 @@ class SettingsMenu(QtWidgets.QWidget):
 
         self.connbtns()
 
+        if timer_set(project_path):
+            self.radiobtn.setChecked(True)
+            self.regslider.setEnabled(True)
+
+        USER_NAME = os.getlogin()
+        file_path = os.path.dirname(os.path.realpath(__file__))
+        vbs_name = 'Nasa Wallpaper.vbs'
+        bat_name = 'Nasa Wallpaper.bat'
+        start = r'C:\Users\{}\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup'.format(USER_NAME)
+        vbs_path = os.path.join(start, vbs_name)
+        bat_path = os.path.join(file_path, bat_name)
+        if os.path.isfile(vbs_path):
+            if os.path.isfile(bat_path):
+                self.checkbox0.setChecked(True)
+
+
     def connbtns(self):
         self.delbtn.clicked.connect(self.dellst)
         self.radiobtn.clicked.connect(self.allowslider)
@@ -875,7 +904,7 @@ class SettingsMenu(QtWidgets.QWidget):
         infobox.setWindowIcon(self.parent.titleicon)
         out = infobox.exec_()
 
-        if out == 16384:  ##out == yes
+        if out == 16384:  #out == yes
             if os.path.isdir(project_path):
                 for item in os.listdir(project_path):
                     path = project_path + '\\' + item
@@ -916,7 +945,8 @@ class SettingsMenu(QtWidgets.QWidget):
 
         with open(project_path + '\\' + "cfg.txt", "w+") as file:
             file.write(
-                "Changing regulary: " + str(self.regslider.isEnabled()) + "\n" + "Interval: " + str(self.parent.timer))
+                "Changing regulary: " + str(self.regslider.isEnabled()) + "\n" + "Interval: " + str(self.parent.timer)+ "\n" +
+                "Max count of pictures: " + str(50))
             file.close()
 
         self.startupset()
